@@ -1,13 +1,13 @@
-const admin = require('firebase-admin');
-// TODO: delete this when ready to deploy, not required
-const serviceAccount = require('./service-account.json')
+const express = require("express");
+const firebase = require('./firebase');
 
-admin.initializeApp({
-    // for when we deploy to google cloud platform
-    // credential: admin.credential.applicationDefault()
-    credential: admin.credential.cert(serviceAccount)
+const app = express();
+const port = 8080;
 
-});
+app.listen(port, () => {
+    console.log(`Listening at http://localhost:${port}`)
+})
 
-const db = admin.firestore();
-
+app.get("/", (req, res) => {
+    res.send(`<p>${firebase.getGame()}</p>`)
+})
