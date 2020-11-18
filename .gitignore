@@ -1,3 +1,6 @@
+# the firebase credentials
+service-account.json
+
 # Logs
 logs
 *.log
