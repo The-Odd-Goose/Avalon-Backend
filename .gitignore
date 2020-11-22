@@ -1,6 +1,9 @@
 # the firebase credentials
 service-account.json
 
+# some architecture notes + other stuff:
+Firestore_Info.txt
+
 # Logs
 logs
 *.log

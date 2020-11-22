@@ -1,3 +1,4 @@
+const { firestore } = require('firebase-admin');
 const admin = require('firebase-admin');
 // TODO: delete this when ready to deploy, not required
 const serviceAccount = require('./service-account.json')
@@ -30,8 +31,10 @@ const newGame = (userId) => ({
     turn: 0,
     voted: [],
     bad: [],
-    merlin: "",
-    percival: "",
+    merlin: null, // these are references to the special characters
+    percival: null,
+    morgana: null,
+    mordred: null
 })
 
 
@@ -42,6 +45,16 @@ exports.createGame = (userId) => {
         ...newGame(userId) // so we generate a new game to add
     })
 
+    // TODO: set the player's subcollection
+
     const gameId = game.id;
 
+    return gameId;
+
+}
+
+// we'll do some preliminary checks to make sure that the userId matches up with someone who is in the game
+exports.startGame = (userId) => {
+    // TODO:
+    // we want to set the merlin, percival, morgana and mordred references
 }
