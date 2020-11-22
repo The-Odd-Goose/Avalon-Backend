@@ -25,19 +25,23 @@ exports.enterGame = (userId, gameId) => {
 // and voted will be an array of currently proposed ppl to go on the mission with
 const newGame = (userId) => ({
     fail: 0,
-    players: [userId],
     rejected: 0,
     success: 0,
     turn: 0,
-    voted: []
+    voted: [],
+    bad: [],
+    merlin: "",
+    percival: "",
 })
+
 
 // here we'll define a function that creates a game for us
 exports.createGame = (userId) => {
 
-    const gameId = 
-
-    await gamesRef.doc().add({
-        newGame()
+    const game = await gamesRef.add({
+        ...newGame(userId) // so we generate a new game to add
     })
+
+    const gameId = game.id;
+
 }
