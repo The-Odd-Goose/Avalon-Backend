@@ -39,7 +39,9 @@ const newGame = (userId) => ({
 
 
 // here we'll define a function that creates a game for us
-exports.createGame = (userId) => {
+exports.createGame = (user) => {
+
+    const {userId, userName, photoURL} = user;
 
     const game = await gamesRef.add({
         ...newGame(userId) // so we generate a new game to add
@@ -48,6 +50,23 @@ exports.createGame = (userId) => {
     // TODO: set the player's subcollection
 
     const gameId = game.id;
+    let playersCollection = gamesRef.doc(gameId).collection('players');
+
+    // so we add the owner to its game
+    await playersCollection.doc(userId).add({
+        name: userName,
+        uid: userId,
+        photoURL
+    })
+
+    let ownerRef = await playersCollection.limit(1).get().then(querySnapshot => {
+        return querySnapshot.docs[0].ref;
+    })
+
+    // now we'll set a reference to the owner
+    gamesRef.doc(gameId).update({
+        owner: ownerRef
+    })
 
     return gameId;
 
