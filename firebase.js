@@ -24,7 +24,7 @@ exports.enterGame = (userId, gameId) => {
 // so this will be how the new game is
 // players array will hold all the players, while turn is which player in that array's turn to suggest a new batch of players
 // and voted will be an array of currently proposed ppl to go on the mission with
-const newGame = (userId) => ({
+const newGame = () => ({
     fail: 0,
     rejected: 0,
     success: 0,
@@ -39,17 +39,21 @@ const newGame = (userId) => ({
 
 
 // here we'll define a function that creates a game for us
-exports.createGame = (user) => {
+exports.createGame = async (user) => {
 
+    console.log("Called create game")
     const {userId, userName, photoURL} = user;
 
-    const game = await gamesRef.add({
-        ...newGame(userId) // so we generate a new game to add
-    })
+    const gameId = gamesRef.add({
+        ...newGame() // so we generate a new game to add
+    }).then(response => response.id)
 
     // TODO: set the player's subcollection
 
-    const gameId = game.id;
+    if(!gameId) {
+        throw new Error("no id?")
+    }
+
     let playersCollection = gamesRef.doc(gameId).collection('players');
 
     // so we add the owner to its game

@@ -17,18 +17,24 @@ app.use(bodyParser.json()) // we'll be parsing json
 // {
 //  photoURL, userName, userId
 // }
-app.post("/createGame", (req, res) => {
-    
-    try {
-        console.log("Trying to create a new game");
 
-        firebase.createGame(res.json(req.body));
+app.post("/createGame", async (req, res) => {
 
-        res.send("Went through!");
-    } catch (error) {
-        res.status(500).json({
-            error: "something went wrong!"
+
+    // here we'll type check somehow
+
+    await firebase.createGame(res.json(req.body))
+        .then(code => {
+            res.send({
+                gameId: code
+            })
         })
-    }
+        .catch(error => {
+            res.status(500).send({
+                error
+            })
+        });
     
+
+
 })
