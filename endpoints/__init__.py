@@ -11,5 +11,8 @@ def create_app(config_class=Config):
     # here we'll have all the different routes required
     # it'll be from endpoints import blueprint
     # app.register_blueprint(blueprint)
+    from endpoints.start import start
+
+    app.register_blueprint(start)
 
     return app
