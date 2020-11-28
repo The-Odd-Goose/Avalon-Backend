@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
 
+# other required stuff
+from typing import List
+import random
+
 # firebase stuff
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -53,7 +57,6 @@ def createGame():
             u'owner': owner_ref
         })
 
-
         # got the game id to work!!
         return jsonify({
             u"gameId": getGameId(game_ref)
@@ -75,6 +78,69 @@ def addToGame():
 
         new_player_ref.set({
             u'username': data.get('username')
+        })
+
+        return "Success!"
+
+@start.route("/startGame", methods=['POST'])
+def startGame():
+
+    if request.method == 'POST':
+        data = request.json
+
+        # TODO: check if game exists, and if userId is the owner
+        game_id = data.get('gameId')
+
+        game_ref = db.collection(u'games').document(game_id)
+        # input stream of all players
+        players = game_ref.collection(u'players').stream()
+
+        def selectRandomPlayer(lst_players: List):
+            return random.randint(0, len(lst_players) - 1)
+
+        # now we'll copy over the players from the stream
+        lst_players = []
+
+        for player in players:
+            lst_players.append(player)
+
+        if len(lst_players) < 5:
+            return "Not enough players!"
+
+        # and now we'll assign their roles
+        merlinIndex = selectRandomPlayer(lst_players)
+        merlin = lst_players[merlinIndex].id # grab merlin first
+        del lst_players[merlinIndex]
+
+        percivalIndex = selectRandomPlayer(lst_players)
+        percival = lst_players[percivalIndex].id # grab percival first
+        del lst_players[percivalIndex]
+
+        bad_players = []
+        morganaIndex = selectRandomPlayer(lst_players)
+        morgana = lst_players[morganaIndex].id # grab morgana first
+        del lst_players[morganaIndex]
+
+        mordredIndex = selectRandomPlayer(lst_players)
+        mordred = lst_players[mordredIndex].id # grab mordred first
+        del lst_players[mordredIndex]
+
+        bad_players.append(morgana)
+        bad_players.append(mordred)
+
+        # now if the number of players >= 7, add a third bad guy
+        if len(lst_players) >= 7:
+            badIndex = selectRandomPlayer(lst_players)
+            bad = lst_players[badIndex].id
+            bad_players.append(bad)
+
+        # now we'll update the roles
+        game_ref.update({
+            u'merlin': merlin,
+            u'percival': percival,
+            u'morgana': morgana,
+            u'mordred': mordred,
+            u'bad': bad_players
         })
 
         return "Success!"
