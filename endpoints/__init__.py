@@ -12,7 +12,9 @@ def create_app(config_class=Config):
     # it'll be from endpoints import blueprint
     # app.register_blueprint(blueprint)
     from endpoints.start import start
+    from endpoints.turns import turns
 
     app.register_blueprint(start)
+    app.register_blueprint(turns)
 
     return app

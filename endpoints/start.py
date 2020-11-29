@@ -4,16 +4,7 @@ from flask import Blueprint, request, jsonify
 from typing import List
 import random
 
-# firebase stuff
-import firebase_admin
-from firebase_admin import credentials, firestore
-
-cred = credentials.Certificate("./service-account.json") # based on app, not here
-default_app = firebase_admin.initialize_app(cred)
-# TODO: switch to this for deployment
-# default_app = firebase_admin.initialize_app()
-
-db = firestore.client()
+from endpoints.firebase import db
 
 # so here we'll define endpoints to start the game
 start = Blueprint('start', __name__)
@@ -23,8 +14,10 @@ newGame = {
     u"fail": 0,
     u"rejected": 0,
     u"success": 0,
-    u"turn": 0,
-    u"voted": [],
+    u"turn": 0, # the turn of the game
+    u"missionMaker": None, # the mission maker
+    u"votedFor": [], # those who voted for the mission
+    u"mission": [], # players on the mission
     u"bad": [],
     u"merlin": None, # these are references to the special characters
     u"percival": None,
@@ -107,6 +100,8 @@ def startGame():
         if len(lst_players) < 5:
             return "Not enough players!"
 
+        missionMaker = lst_players[0].id # our mission maker is arbitrarily the first one
+
         # and now we'll assign their roles
         merlinIndex = selectRandomPlayer(lst_players)
         merlin = lst_players[merlinIndex].id # grab merlin first
@@ -140,7 +135,8 @@ def startGame():
             u'percival': percival,
             u'morgana': morgana,
             u'mordred': mordred,
-            u'bad': bad_players
+            u'bad': bad_players,
+            u'missionMaker': missionMaker
         })
 
         return "Success!"
