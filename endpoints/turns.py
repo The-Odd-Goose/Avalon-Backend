@@ -60,5 +60,10 @@ def vote():
         })
 
         return f"Number of votes for: {game.get('votedFor') + 1}"
+
+    # TODO: after they vote, either for or against, remove them from the mission
+    # TODO: so that way we can see if they already voted or not
+
+    # TODO: after last person voted, determine if success or fail, and then do more checking
     
     return "You did not vote for the mission hehehe"
