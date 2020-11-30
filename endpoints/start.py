@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from typing import List
 import random
 
-from endpoints.firebase import db
+from endpoints.firebase import db, getGameRef
 
 # so here we'll define endpoints to start the game
 start = Blueprint('start', __name__)
@@ -16,7 +16,7 @@ newGame = {
     u"success": 0,
     u"turn": 0, # the turn of the game
     u"missionMaker": None, # the mission maker
-    u"votedFor": [], # those who voted for the mission
+    u"votedFor": 0, # number of players voting for mission
     u"mission": [], # players on the mission
     u"bad": [],
     u"merlin": None, # these are references to the special characters
@@ -84,7 +84,7 @@ def startGame():
         # TODO: check if game exists, and if userId is the owner
         game_id = data.get('gameId')
 
-        game_ref = db.collection(u'games').document(game_id)
+        game_ref = getGameRef(game_id)
         # input stream of all players
         players = game_ref.collection(u'players').stream()
 

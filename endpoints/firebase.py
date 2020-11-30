@@ -14,3 +14,10 @@ db = firestore.client()
 # make sure that the player's docId.uid is the same as given userId
 def checkPlayersUid(gameId, docId, userId):
     pass
+
+def getGameRef(gameId):
+    game_ref = db.collection(u'games').document(gameId)
+    return game_ref
+
+def getGameDict(game_ref):
+    return game_ref.get().to_dict()

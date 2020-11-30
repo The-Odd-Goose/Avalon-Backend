@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from endpoints.firebase import db
+from endpoints.firebase import db, getGameDict, getGameRef
 
 turns = Blueprint('turns', __name__)
 
@@ -21,10 +21,44 @@ def proposeMission():
     data = request.json
 
     game_id = data.get('gameId')
-    game_ref = db.collection(u'games').document(game_id)
+
+    game_ref = getGameRef(game_id)
 
     game_ref.update({
         u'mission': data.get('mission')
     })
 
     return "Success! Added ppl to mission!"
+
+@turns.route("/voteMission", methods = ['POST'])
+def vote():
+
+    # data has to be of form:
+    # {
+    #   gameId: gameId,
+    #   userId: their user id,
+    #   voteFor: boolean, voting for the proposed mission or not 
+    # }
+
+    # TODO: check and make sure that the user's id is part of mission
+    data = request.json
+
+    game_id = data.get('gameId')
+    uid = data.get("userId")
+    voteFor = data.get("voteFor")
+
+    game_ref = getGameRef(game_id)
+
+    # now we'll query the game's data
+    game = getGameDict(game_ref)
+
+    if voteFor:
+        # now we'll add to the voteFor
+        # first we'll have to query the score
+        game_ref.update({
+            u'votedFor': (game.get('votedFor') + 1)
+        })
+
+        return f"Number of votes for: {game.get('votedFor') + 1}"
+    
+    return "You did not vote for the mission hehehe"
