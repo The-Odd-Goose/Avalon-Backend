@@ -1,11 +1,16 @@
 from flask import Flask
 from endpoints.config import Config
+from flask_cors import CORS
 
 def create_app(config_class=Config):
 
     # standard setup
-    # more configuration within 
     app = Flask(__name__)
+
+    # cors setup
+    cors = CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
+    # more configuration within 
     app.config.from_object(Config)
 
     # here we'll have all the different routes required
