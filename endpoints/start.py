@@ -63,6 +63,10 @@ def addToGame():
     # TODO: make sure we can't add the same player multiple times, this will require a query
     # TODO: query to make sure game exists
     if request.method == 'POST':
+        # data needs to be of type:
+        # {
+        #   username, gameId, uid, photoURL
+        # }
         data = request.json
 
         # so now we grab the game reference, and we add our player to the collection of players
@@ -70,7 +74,9 @@ def addToGame():
         new_player_ref = db.collection(u'games').document(game_id).collection(u'players').document()
 
         new_player_ref.set({
-            u'username': data.get('username')
+            u'username': data.get('username'),
+            u'uid': data.get('uid'),
+            u'photoURL': data.get('photoURL')
         })
 
         return "Success!"
