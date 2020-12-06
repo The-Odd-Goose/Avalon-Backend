@@ -65,7 +65,7 @@ def addToGame():
     if request.method == 'POST':
         # data needs to be of type:
         # {
-        #   username, gameId, uid, photoURL
+        #   username, gameId, uid --- note we will get photoURL through uid
         # }
         data = request.json
 
@@ -73,10 +73,12 @@ def addToGame():
         game_id = data.get('gameId')
         new_player_ref = db.collection(u'games').document(game_id).collection(u'players').document()
 
+        # here we'll get the photoURL
+
+
         new_player_ref.set({
             u'username': data.get('username'),
             u'uid': data.get('uid'),
-            u'photoURL': data.get('photoURL')
         })
 
         return "Success!"
