@@ -2,6 +2,7 @@
 
 import firebase_admin
 from firebase_admin import credentials, firestore
+from firebase_admin.auth import UserNotFoundError
 
 cred = credentials.Certificate("./service-account.json") # based on app, not here
 default_app = firebase_admin.initialize_app(cred)
@@ -21,3 +22,17 @@ def getGameRef(gameId):
 
 def getGameDict(game_ref):
     return game_ref.get().to_dict()
+
+# checks if a user exists
+# throws an error, and returns a string if user DNE, otherwise, returns the user itself
+def doesUserExist(uid):
+    from firebase_admin import auth
+    UserNotFoundError = auth.UserNotFoundError
+
+    try:
+        user = auth.get_user(uid)
+        return user
+    except UserNotFoundError as e:
+        return "User Not Found... Login"
+    finally:
+        return "An error occured when trying to query user"
