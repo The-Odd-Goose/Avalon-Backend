@@ -6,6 +6,9 @@ import random
 
 from endpoints.firebase import db, getGameRef
 
+# type checking + user auth:
+from endpoints.type import game_Exist, is_User, UIDError, GameIDError
+
 # so here we'll define endpoints to start the game
 start = Blueprint('start', __name__)
 
@@ -36,32 +39,41 @@ def createGame():
     # TODO: add in the type checking, our owner needs to have:
     # TODO: username, uid, photoURL
     if request.method ==  'POST':
-        game_ref = db.collection(u'games').document()
-        game_ref.set(newGame)
+        try: 
 
-        data = request.json
+            data = request.json
+            user = is_User(data)
 
-        owner_ref = game_ref.collection(u'players').document()
-        owner_ref.set({
-            u'username': data.get('username')
-        })
+            game_ref = db.collection(u'games').document()
+            game_ref.set(newGame)
 
-        game_ref.update({
-            u'owner': owner_ref
-        })
+            owner_ref = game_ref.collection(u'players').document()
+            owner_ref.set({
+                u'username': data.get('username'),
+                u'uid': user.uid,
+                u'photoURL': user.photo_url
+            })
 
-        # got the game id to work!!
-        return jsonify({
-            u"gameId": getGameId(game_ref)
-        })
+            game_ref.update({
+                u'owner': owner_ref
+            })
+
+            # got the game id to work!!
+            return jsonify({
+                u"gameId": getGameId(game_ref)
+            })
+
+        except UIDError as e:
+            return e.message
+        except ValueError as e:
+            return "UID request was incorrect"
 
 @start.route("/addToGame", methods=['POST'])
 def addToGame():
 
     # TODO: same as above, type checking, etc.
-    # TODO: extra field of gameId
     # TODO: make sure we can't add the same player multiple times, this will require a query
-    # TODO: query to make sure game exists
+    # TODO: cap number of players
     if request.method == 'POST':
         # data needs to be of type:
         # {
@@ -69,19 +81,27 @@ def addToGame():
         # }
         data = request.json
 
-        # so now we grab the game reference, and we add our player to the collection of players
-        game_id = data.get('gameId')
-        new_player_ref = db.collection(u'games').document(game_id).collection(u'players').document()
+        try: 
 
-        # here we'll get the photoURL
+            user = is_User(data)
+            game_ref = game_Exist(data)
 
+            # so now we grab the game reference, and we add our player to the collection of players
+            new_player_ref = game_ref.collection(u'players').document()
 
-        new_player_ref.set({
-            u'username': data.get('username'),
-            u'uid': data.get('uid'),
-        })
+            new_player_ref.set({
+                u'username': data.get('username'),
+                u'uid': user.get('uid'),
+                u'photoURL': user.get('photoURL')
+            })
 
-        return "Success!"
+            return "Success!"
+
+        # what happens with different types of errors
+        except UIDError as e:
+            return f"Failure occured due to user... {e.message}"
+        except GameIDError as e:
+            return f"Failure occured due to game id... {e.message}"
 
 @start.route("/startGame", methods=['POST'])
 def startGame():

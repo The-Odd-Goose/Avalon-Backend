@@ -34,5 +34,14 @@ def doesUserExist(uid):
         return user
     except UserNotFoundError as e:
         return "User Not Found... Login"
-    finally:
-        return "An error occured when trying to query user"
+
+def doesGameExist(game_id):
+    game_ref = db.collection(u'games').document(game_id)
+    game = game_ref.get()
+
+    if game.exists:
+        # if the game exists, return the game ref
+        return game_ref
+    
+    # otherwise, return a string defining its error
+    return "Error: game does not exist"

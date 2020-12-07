@@ -5,6 +5,9 @@ class UIDError(Exception):
     def __init__(self, message="A uid error has occured"):
         self.message = message
 
+class GameIDError(Exception):
+    def __init__(self, message="A game error has occured"):
+        self.message = message
 
 # this function checks if the user exists, if it does, returns the user object
 def is_User(data):
@@ -23,3 +26,20 @@ def is_User(data):
         raise UIDError(user)
 
     return user
+
+def game_Exist(data):
+
+    game_id = data.get("gameId")
+
+    if game_id == None:
+        raise GameIDError("Game Id was not given in request")
+
+    # returns a game from checking if the game exists -- a game ref actually
+    from endpoints.firebase import doesGameExist
+    game_ref = doesGameExist(game_id)
+
+    # if it is a string however, an error has occured
+    if type(game_ref) == str:
+        raise GameIDError(game_ref)
+
+    return game_ref
