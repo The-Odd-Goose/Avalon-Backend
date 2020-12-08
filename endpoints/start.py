@@ -7,7 +7,7 @@ import random
 from endpoints.firebase import db, getGameRef
 
 # type checking + user auth:
-from endpoints.type import game_Exist, is_User, UIDError, GameIDError
+from endpoints.type import does_user_exist_in_game, game_Exist, is_User, UIDError, GameIDError
 
 # so here we'll define endpoints to start the game
 start = Blueprint('start', __name__)
@@ -20,24 +20,29 @@ newGame = {
     u"turn": 0, # the turn of the game
     u"missionMaker": None, # the mission maker
     u"votedFor": 0, # number of players voting for mission
-    u"mission": [], # players on the mission
-    u"bad": [],
-    u"merlin": None, # these are references to the special characters
-    u"percival": None,
-    u"morgana": None,
-    u"mordred": None
+    u"mission": [] # players on the mission
 }
 
 # how we get the game's id
 def getGameId(game_ref):
     return game_ref.id
 
+def init_player(player_ref, username, user):
+    player_ref.set({
+        u'username': username,
+        u'uid': user.uid,
+        u'photoURL': user.photo_url,
+        u'merlin': False,
+        u'mordred': False,
+        u'bad': False,
+        u'percival': False,
+        u'morgana': False
+    })
+
 # creating a game endpoint
 @start.route("/createGame", methods=['POST'])
 def createGame():
 
-    # TODO: add in the type checking, our owner needs to have:
-    # TODO: username, uid, photoURL
     if request.method ==  'POST':
         try: 
 
@@ -48,11 +53,7 @@ def createGame():
             game_ref.set(newGame)
 
             owner_ref = game_ref.collection(u'players').document()
-            owner_ref.set({
-                u'username': data.get('username'),
-                u'uid': user.uid,
-                u'photoURL': user.photo_url
-            })
+            init_player(owner_ref, data.get("username"), user)
 
             game_ref.update({
                 u'owner': owner_ref
@@ -71,8 +72,6 @@ def createGame():
 @start.route("/addToGame", methods=['POST'])
 def addToGame():
 
-    # TODO: same as above, type checking, etc.
-    # TODO: make sure we can't add the same player multiple times, this will require a query
     # TODO: cap number of players
     if request.method == 'POST':
         # data needs to be of type:
@@ -81,19 +80,14 @@ def addToGame():
         # }
         data = request.json
 
-        try: 
+        try:
 
             user = is_User(data)
             game_ref = game_Exist(data)
+            new_player_ref = does_user_exist_in_game(game_ref, user.uid)
 
             # so now we grab the game reference, and we add our player to the collection of players
-            new_player_ref = game_ref.collection(u'players').document()
-
-            new_player_ref.set({
-                u'username': data.get('username'),
-                u'uid': user.get('uid'),
-                u'photoURL': user.get('photoURL')
-            })
+            init_player(new_player_ref, data.get("username"), user)
 
             return "Success!"
 
@@ -103,6 +97,7 @@ def addToGame():
         except GameIDError as e:
             return f"Failure occured due to game id... {e.message}"
 
+# TODO: rewrite the rules, so that way the bad, merlin, mordred, etc. are all in the players, not accessed to everyone
 @start.route("/startGame", methods=['POST'])
 def startGame():
 
@@ -110,23 +105,19 @@ def startGame():
         data = request.json
 
         # TODO: check if game exists, and if userId is the owner
-        game_id = data.get('gameId')
+        game_ref = game_Exist(data)
 
-        game_ref = getGameRef(game_id)
         # input stream of all players
         players = game_ref.collection(u'players').stream()
 
-        def selectRandomPlayer(lst_players: List):
-            return random.randint(0, len(lst_players) - 1)
-
         # now we'll copy over the players from the stream
-        lst_players = []
-
-        for player in players:
-            lst_players.append(player)
+        lst_players = [p for p in players]
 
         if len(lst_players) < 5:
             return "Not enough players!"
+
+        def selectRandomPlayer(lst_players: List):
+            return random.randint(0, len(lst_players) - 1)
 
         missionMaker = lst_players[0].id # our mission maker is arbitrarily the first one
 

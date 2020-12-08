@@ -45,3 +45,16 @@ def doesGameExist(game_id):
     
     # otherwise, return a string defining its error
     return "Error: game does not exist"
+
+def doesUserExistInGame(game_ref, uid):
+    players_ref = game_ref.collection(u'players')
+
+    # now we query for a specific player with our uid
+    players_ref.where(u"uid", u"==", uid).limit(1)
+
+    player_lst = [p for p in players_ref.stream()]
+
+    if len(player_lst) == 0:
+        return players_ref.document()
+
+    return "User already exists!"

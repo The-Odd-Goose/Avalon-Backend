@@ -27,6 +27,7 @@ def is_User(data):
 
     return user
 
+# ** this function returns the game_ref, or raises an error**
 def game_Exist(data):
 
     game_id = data.get("gameId")
@@ -43,3 +44,15 @@ def game_Exist(data):
         raise GameIDError(game_ref)
 
     return game_ref
+
+# ** this function returns a user_ref or raises an error**
+def does_user_exist_in_game(game_ref, uid):
+
+    from endpoints.firebase import doesUserExistInGame
+
+    user_ref = doesUserExistInGame(game_ref, uid)
+
+    if type(user_ref) == str:
+        raise UIDError("User is already in game!")
+
+    return user_ref
