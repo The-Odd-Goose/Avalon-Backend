@@ -7,7 +7,7 @@ import random
 from endpoints.firebase import db, getGameRef
 
 # type checking + user auth:
-from endpoints.type import does_user_exist_in_game, game_Exist, is_User, UIDError, GameIDError
+from endpoints.type import does_user_exist_in_game, game_Exist, is_User, UIDError, GameIDError, is_owner_of_game
 
 # so here we'll define endpoints to start the game
 start = Blueprint('start', __name__)
@@ -36,7 +36,8 @@ def init_player(player_ref, username, user):
         u'mordred': False,
         u'bad': False,
         u'percival': False,
-        u'morgana': False
+        u'morgana': False,
+        u'owner': False
     })
 
 # creating a game endpoint
@@ -55,8 +56,9 @@ def createGame():
             owner_ref = game_ref.collection(u'players').document()
             init_player(owner_ref, data.get("username"), user)
 
-            game_ref.update({
-                u'owner': owner_ref
+            # we'll update who the owner is by saving it directly into player
+            owner_ref.update({
+                u'owner': True
             })
 
             # got the game id to work!!
@@ -97,65 +99,80 @@ def addToGame():
         except GameIDError as e:
             return f"Failure occured due to game id... {e.message}"
 
-# TODO: rewrite the rules, so that way the bad, merlin, mordred, etc. are all in the players, not accessed to everyone
 @start.route("/startGame", methods=['POST'])
 def startGame():
 
     if request.method == 'POST':
         data = request.json
 
-        # TODO: check if game exists, and if userId is the owner
-        game_ref = game_Exist(data)
+        # TODO: more authentication stuff, like when game has started, cannot do it again
+        try: 
+            game_ref = game_Exist(data)
+            user = is_User(data)
 
-        # input stream of all players
-        players = game_ref.collection(u'players').stream()
+            # if they are not the owner of the game, return false
+            if not is_owner_of_game(game_ref, user.uid):
+                return "Not owner of game --- cannot start it!"
 
-        # now we'll copy over the players from the stream
-        lst_players = [p for p in players]
+            # input stream of all players
+            players = game_ref.collection(u'players').stream()
 
-        if len(lst_players) < 5:
-            return "Not enough players!"
+            # now we'll copy over the players from the stream
+            lst_players = [p for p in players]
 
-        def selectRandomPlayer(lst_players: List):
-            return random.randint(0, len(lst_players) - 1)
+            if len(lst_players) < 5:
+                return "Not enough players!"
 
-        missionMaker = lst_players[0].id # our mission maker is arbitrarily the first one
+            def selectRandomPlayer(lst_players: List):
+                return random.randint(0, len(lst_players) - 1)
 
-        # and now we'll assign their roles
-        merlinIndex = selectRandomPlayer(lst_players)
-        merlin = lst_players[merlinIndex].id # grab merlin first
-        del lst_players[merlinIndex]
+            missionMaker = lst_players[0].id # our mission maker is arbitrarily the first one
 
-        percivalIndex = selectRandomPlayer(lst_players)
-        percival = lst_players[percivalIndex].id # grab percival first
-        del lst_players[percivalIndex]
+            # and now we'll assign their roles
+            merlinIndex = selectRandomPlayer(lst_players)
+            merlin = lst_players[merlinIndex] # grab merlin first
+            game_ref.collection('players').document(merlin.id).update({ # set merlin's role to true
+                u'merlin': True
+            })
+            del lst_players[merlinIndex]
 
-        bad_players = []
-        morganaIndex = selectRandomPlayer(lst_players)
-        morgana = lst_players[morganaIndex].id # grab morgana first
-        del lst_players[morganaIndex]
+            percivalIndex = selectRandomPlayer(lst_players)
+            percival = lst_players[percivalIndex] # grab percival's player_ref
+            game_ref.collection('players').document(percival.id).update({ # set percival's role to true
+                u'percival': True
+            })
+            del lst_players[percivalIndex]
 
-        mordredIndex = selectRandomPlayer(lst_players)
-        mordred = lst_players[mordredIndex].id # grab mordred first
-        del lst_players[mordredIndex]
+            morganaIndex = selectRandomPlayer(lst_players)
+            morgana = lst_players[morganaIndex] # grab morgana's player_ref
+            game_ref.collection('players').document(morgana.id).update({ # set morgana's role to true
+                u'morgana': True,
+                u'bad': True
+            })
+            del lst_players[morganaIndex]
 
-        bad_players.append(morgana)
-        bad_players.append(mordred)
+            mordredIndex = selectRandomPlayer(lst_players)
+            mordred = lst_players[mordredIndex] # grab mordred's player_ref
+            game_ref.collection('players').document(mordred.id).update({ # set mordred's role to true
+                u'mordred': True,
+                u'bad': True
+            })
+            del lst_players[mordredIndex]
 
-        # now if the number of players >= 7, add a third bad guy
-        if len(lst_players) >= 7:
-            badIndex = selectRandomPlayer(lst_players)
-            bad = lst_players[badIndex].id
-            bad_players.append(bad)
+            # now if the number of players >= 7, add a third bad guy
+            if len(lst_players) >= 7:
+                badIndex = selectRandomPlayer(lst_players)
+                bad = lst_players[badIndex]
+                game_ref.collection('players').document(bad.id).update({ # set bad's role to true
+                    u'bad': True
+                })
 
-        # now we'll update the roles
-        game_ref.update({
-            u'merlin': merlin,
-            u'percival': percival,
-            u'morgana': morgana,
-            u'mordred': mordred,
-            u'bad': bad_players,
-            u'missionMaker': missionMaker
-        })
+            # now we'll update the mission maker
+            game_ref.update({
+                u'missionMaker': missionMaker
+            })
 
-        return "Success!"
+            return "Success!"
+
+        except UIDError as e:
+            return e.message

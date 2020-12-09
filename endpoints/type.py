@@ -1,5 +1,7 @@
 # this module here will define some type checking functions
 
+from endpoints.firebase import doesUserExistInGame, getOwner
+
 class UIDError(Exception):
     # the error that occurs with uids
     def __init__(self, message="A uid error has occured"):
@@ -14,7 +16,7 @@ def is_User(data):
     
     uid = data.get("uid")
     # checks the user ID directly if in object
-    if uid == None:
+    if uid == None or uid == "":
         raise UIDError("UID was not given in request")
 
     # then needs to check the firebase to see if user is in there
@@ -48,11 +50,15 @@ def game_Exist(data):
 # ** this function returns a user_ref or raises an error**
 def does_user_exist_in_game(game_ref, uid):
 
-    from endpoints.firebase import doesUserExistInGame
-
     user_ref = doesUserExistInGame(game_ref, uid)
 
-    if type(user_ref) == str:
+    if type(user_ref) == list:
         raise UIDError("User is already in game!")
 
     return user_ref
+
+# ** given a certain game_ref, search if the uid of the owner is the same as the given uid**
+def is_owner_of_game(game_ref, uid):
+    owner_ref = getOwner(game_ref)
+    print(owner_ref.to_dict())
+    return owner_ref.to_dict().get("uid") == uid
