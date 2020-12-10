@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 
 # other required stuff
 from typing import List
@@ -67,9 +67,9 @@ def createGame():
             })
 
         except UIDError as e:
-            return e.message
+            abort(403, e.message)
         except ValueError as e:
-            return "UID request was incorrect"
+            abort(400, "UID request was incorrect")
 
 @start.route("/addToGame", methods=['POST'])
 def addToGame():
@@ -86,7 +86,8 @@ def addToGame():
 
             user = is_User(data)
             game_ref = game_Exist(data)
-            new_player_ref = does_user_exist_in_game(game_ref, user.uid)
+            player_ref = game_ref.collection(u"players")
+            new_player_ref = does_user_exist_in_game(player_ref, user.uid)
 
             # so now we grab the game reference, and we add our player to the collection of players
             init_player(new_player_ref, data.get("username"), user)
@@ -95,9 +96,9 @@ def addToGame():
 
         # what happens with different types of errors
         except UIDError as e:
-            return f"Failure occured due to user... {e.message}"
+            abort(403, f"Failure occured due to user... {e.message}")
         except GameIDError as e:
-            return f"Failure occured due to game id... {e.message}"
+            abort(400, f"Failure occured due to game id... {e.message}")
 
 @start.route("/startGame", methods=['POST'])
 def startGame():
@@ -109,19 +110,27 @@ def startGame():
         try: 
             game_ref = game_Exist(data)
             user = is_User(data)
+            players_ref = game_ref.collection(u'players')
 
             # if they are not the owner of the game, return false
-            if not is_owner_of_game(game_ref, user.uid):
-                return "Not owner of game --- cannot start it!"
+            if not is_owner_of_game(players_ref, user.uid):
+                abort(403, "Not owner of game --- cannot start it!")
+
+            game = game_ref.get().to_dict()
+            turn = game.get("turn")
+
+            if turn != 0:
+                abort(403, "Game has already started, cannot start again!")
 
             # input stream of all players
-            players = game_ref.collection(u'players').stream()
+            players = players_ref.stream()
 
             # now we'll copy over the players from the stream
             lst_players = [p for p in players]
+            numPlayers = len(lst_players)
 
-            if len(lst_players) < 5:
-                return "Not enough players!"
+            if numPlayers < 5:
+                abort(400, "Not enough players!")
 
             def selectRandomPlayer(lst_players: List):
                 return random.randint(0, len(lst_players) - 1)
@@ -131,21 +140,21 @@ def startGame():
             # and now we'll assign their roles
             merlinIndex = selectRandomPlayer(lst_players)
             merlin = lst_players[merlinIndex] # grab merlin first
-            game_ref.collection('players').document(merlin.id).update({ # set merlin's role to true
+            players_ref.document(merlin.id).update({ # set merlin's role to true
                 u'merlin': True
             })
             del lst_players[merlinIndex]
 
             percivalIndex = selectRandomPlayer(lst_players)
             percival = lst_players[percivalIndex] # grab percival's player_ref
-            game_ref.collection('players').document(percival.id).update({ # set percival's role to true
+            players_ref.document(percival.id).update({ # set percival's role to true
                 u'percival': True
             })
             del lst_players[percivalIndex]
 
             morganaIndex = selectRandomPlayer(lst_players)
             morgana = lst_players[morganaIndex] # grab morgana's player_ref
-            game_ref.collection('players').document(morgana.id).update({ # set morgana's role to true
+            players_ref.document(morgana.id).update({ # set morgana's role to true
                 u'morgana': True,
                 u'bad': True
             })
@@ -153,26 +162,28 @@ def startGame():
 
             mordredIndex = selectRandomPlayer(lst_players)
             mordred = lst_players[mordredIndex] # grab mordred's player_ref
-            game_ref.collection('players').document(mordred.id).update({ # set mordred's role to true
+            players_ref.document(mordred.id).update({ # set mordred's role to true
                 u'mordred': True,
                 u'bad': True
             })
             del lst_players[mordredIndex]
 
             # now if the number of players >= 7, add a third bad guy
-            if len(lst_players) >= 7:
+            if numPlayers >= 7:
                 badIndex = selectRandomPlayer(lst_players)
                 bad = lst_players[badIndex]
-                game_ref.collection('players').document(bad.id).update({ # set bad's role to true
+                players_ref.document(bad.id).update({ # set bad's role to true
                     u'bad': True
                 })
 
             # now we'll update the mission maker
             game_ref.update({
-                u'missionMaker': missionMaker
+                u'missionMaker': missionMaker,
+                u'turn': 1,
+                u'numPlayers': numPlayers
             })
 
             return "Success!"
 
         except UIDError as e:
-            return e.message
+            abort(400, e.message)

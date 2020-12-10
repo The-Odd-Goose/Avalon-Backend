@@ -1,7 +1,11 @@
 from flask import Blueprint, request, jsonify
-from endpoints.firebase import db, getGameDict, getGameRef
+from endpoints.firebase import db, doesGameExist, getGameDict, getGameRef
 
 turns = Blueprint('turns', __name__)
+
+# given a certain turn, and number of players, will return the 
+def pplOnMission(turn: int, ppl: int) -> int:
+    pass
 
 # endpoint to propose missions
 @turns.route("/proposeMission", methods=['POST'])
@@ -19,10 +23,7 @@ def proposeMission():
     # TODO: its turns, and then corresponding mission sizes
 
     data = request.json
-
-    game_id = data.get('gameId')
-
-    game_ref = getGameRef(game_id)
+    game_ref = doesGameExist(data)
 
     game_ref.update({
         u'mission': data.get('mission')
