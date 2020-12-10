@@ -48,17 +48,16 @@ def game_Exist(data):
     return game_ref
 
 # ** this function returns a user_ref or raises an error**
-def does_user_exist_in_game(game_ref, uid):
+def does_user_exist_in_game(players_ref, uid):
 
-    user_ref = doesUserExistInGame(game_ref, uid)
+    user_ref = doesUserExistInGame(players_ref, uid)
 
     if type(user_ref) == list:
         raise UIDError("User is already in game!")
 
     return user_ref
 
-# ** given a certain game_ref, search if the uid of the owner is the same as the given uid**
-def is_owner_of_game(game_ref, uid):
-    owner_ref = getOwner(game_ref)
-    print(owner_ref.to_dict())
+# ** given a certain players_ref, search if the uid of the owner is the same as the given uid**
+def is_owner_of_game(players_ref, uid):
+    owner_ref = getOwner(players_ref)
     return owner_ref.to_dict().get("uid") == uid

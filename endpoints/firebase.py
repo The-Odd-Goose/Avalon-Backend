@@ -48,26 +48,22 @@ def doesGameExist(game_id):
 
 # TODO: redo this with players_ref as the parameter --- save up on reads
 # returns either the list with the player inside it, or a new reference to a new player
-def doesUserExistInGame(game_ref, uid):
-    players_ref = game_ref.collection(u'players')
+def doesUserExistInGame(players_ref, uid):
 
     # now we query for a specific player with our uid
-    # players = players_ref.where(u"uid", u"==", uid).limit(1)
+    players = players_ref.where(u"uid", u"==", uid).limit(1)
 
-    # player_lst = [p for p in players.stream()]
+    player_lst = [p for p in players.stream()]
 
-    # if len(player_lst) == 0:
-        # return players_ref.document()
+    if len(player_lst) == 0:
+        return players_ref.document()
     # TODO: uncomment and delete --- this is for testing purposes rn
-    return players_ref.document()
+    # return players_ref.document()
 
-    # return player_lst
+    return player_lst
 
 # queries the owner of the game
-def getOwner(game_ref):
-    players_ref = game_ref.collection(u'players')
+def getOwner(players_ref):
     owner = players_ref.where(u"owner", u"==", True)
-
     owner_ref = [p for p in owner.stream()][0]
-    
     return owner_ref
