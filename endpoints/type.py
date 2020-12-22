@@ -50,12 +50,15 @@ def game_Exist(data):
 # ** this function returns a user_ref or raises an error**
 def does_user_exist_in_game(players_ref, uid):
 
-    user_ref = doesUserExistInGame(players_ref, uid)
+    user_exist = doesUserExistInGame(players_ref, uid)
 
-    if type(user_ref) == list:
-        raise UIDError("User is already in game!")
+    if not user_exist:
+        return players_ref.document()
+    # TODO: uncomment and delete --- this is for testing purposes rn
+    # return players_ref.document()
 
-    return user_ref
+    # if user does exist, raise an error
+    raise UIDError("User is already in game!")
 
 # ** given a certain players_ref, search if the uid of the owner is the same as the given uid**
 def is_owner_of_game(players_ref, uid):

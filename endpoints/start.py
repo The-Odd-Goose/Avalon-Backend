@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify, abort
 from typing import List
 import random
 
-from endpoints.firebase import db, getGameRef
+from endpoints.firebase import db, doesUserExistInGame, getGameDict, getGameRef
 
 # type checking + user auth:
 from endpoints.type import does_user_exist_in_game, game_Exist, is_User, UIDError, GameIDError, is_owner_of_game
@@ -14,15 +14,16 @@ start = Blueprint('start', __name__)
 
 # the start of a new game
 newGame = {
-    u"fail": 0,
-    u"rejected": 0,
-    u"success": 0,
-    u"turn": 0, # the turn of the game -- only vote if .5
-    u"missionMaker": 0, # the mission maker
+    u"failMission": 0, # for voting on the mission, num of  
+    u"successMission": 0, # number of players voting for the mission to succeed
+    u"rejected": 0, # number of rejected missions
+    u"success": 0, # number of successful missions
+    u"turn": 0, # the turn of the game -- x.0 is proposal, x.1 is voting, x.5 is choice
+    u"missionMaker": 0, # the mission maker -- index based on all player's user id
     u"voteFor": 0, # number of players voting for mission to run
-    u"missionFor": 0, # number of players voting for the mission to succeed
-    u"mission": [], # players on the mission
-    u'vote': [], # this will have the different players who have not voted yet for the next mission
+    u"mission": [], # ! players on the mission -- user ids
+    u'vote': [], # this will have the different players who have not voted yet for the next mission -- user ids
+    u'numPlayers': 1
 }
 
 # how we get the game's id
@@ -43,7 +44,8 @@ def init_player(player_ref, username, user):
     })
 
 # creating a game endpoint
-@start.route("/createGame", methods=['POST'])
+# ! Deleting and creating works !
+@start.route("/game", methods=['POST', 'DELETE'])
 def createGame():
 
     if request.method ==  'POST':
@@ -72,8 +74,27 @@ def createGame():
             abort(403, e.message)
         except ValueError as e:
             abort(400, "UID request was incorrect")
+    elif request.method == 'DELETE':
+        try:
+            data = request.json
+            user = is_User(data)
+            game_ref = game_Exist(data)
+            
+            user = doesUserExistInGame(game_ref.collection(u"players"), data.get("uid"))
 
-@start.route("/addToGame", methods=['POST'])
+            if user and user.to_dict().get("owner"):
+                game_ref.delete()
+                return "Delete"
+
+            # if not the owner, abort
+            abort(403, "Not the owner, cannot delete this game")
+        except UIDError as e:
+            abort(403, e.message)
+        except ValueError as e:
+            abort(400, "UID request was incorrect")
+
+# ! Adding a player works + removing a player works !
+@start.route("/gameMember", methods=['POST', 'DELETE'])
 def addToGame():
 
     # TODO: cap number of players
@@ -88,15 +109,77 @@ def addToGame():
 
             user = is_User(data)
             game_ref = game_Exist(data)
+            game = getGameDict(game_ref)
+
+            turn = game.get("turn")
+            num_players = game.get("numPlayers")
+
+            if turn != 0:
+                abort(400, "Game has already started, cannot add players")
+            
+            if num_players >= 8:
+                abort(400, "Max at 8 players!")
+
             player_ref = game_ref.collection(u"players")
             new_player_ref = does_user_exist_in_game(player_ref, user.uid)
 
+            # if num_players < 8, then increment it
+            game_ref.update({
+                num_players: num_players + 1
+            })
+
             # so now we grab the game reference, and we add our player to the collection of players
             init_player(new_player_ref, data.get("username"), user)
-
             return "Success!"
 
         # what happens with different types of errors
+        except UIDError as e:
+            abort(403, f"Failure occured due to user... {e.message}")
+        except GameIDError as e:
+            abort(400, f"Failure occured due to game id... {e.message}")
+    elif request.method == 'DELETE':
+        data = request.json
+
+        try:
+            user = is_User(data)
+            game_ref = game_Exist(data)
+            game = getGameDict(game_ref)
+
+            if game.get("turn") != 0:
+                abort(400, "Game has already started, cannot leave")
+
+            num_players = game.get("numPlayers") - 1
+            if num_players == 0:
+                game_ref.delete()
+                return "Game deleted"
+
+            player_ref = game_ref.collection(u"players")
+            user = doesUserExistInGame(players_ref=player_ref, uid=user.uid)
+
+            # I realized too late that getGameDict gets any document dictionary for that matter
+
+            if user:
+                # if the user exists in the game, query its document id
+                # then using this, we delete it from players_ref
+                player_ref.document(user.id).delete()
+                # TODO: transfer ownership + if last member, remove game
+                user_dict = user.to_dict()
+
+                if user_dict.get("owner"):
+                    # transfer ownership
+                    nxt_player = [p for p in player_ref.limit(1).stream()][0]
+                    player_ref.document(nxt_player.id).update({
+                        u"owner": True
+                    })
+
+                game_ref.update({
+                    u"numPlayers": num_players
+                })
+
+                return "Deleted"
+            
+            abort(400, "User does not exist in game")
+
         except UIDError as e:
             abort(403, f"Failure occured due to user... {e.message}")
         except GameIDError as e:
@@ -129,11 +212,11 @@ def startGame():
 
             # now we'll copy over the players from the stream
             lst_players = [p for p in players]
-            players_id_lst = [p.id for p in lst_players] # gets a list of all the player's access id
-            numPlayers = len(lst_players)
+            players_id_lst = [p.to_dict().get("uid") for p in lst_players] # gets a list of all the player's access id
+            numPlayers = game.get("numPlayers")
 
-            if numPlayers < 5:
-                abort(400, "Not enough players!")
+            if numPlayers < 5 or numPlayers > 8:
+                abort(400, "Not the right number of players -- between 5 and 8!")
 
             # we need to update the players in the game
             game_ref.update({
@@ -185,7 +268,6 @@ def startGame():
 
             game_ref.update({
                 u'turn': 1,
-                u'numPlayers': numPlayers
             })
 
             return "Success!"

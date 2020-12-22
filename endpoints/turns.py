@@ -45,9 +45,7 @@ def proposeMission():
         players_ref = game_ref.collection(u'players')
 
         # have to check whether it is the right player
-        mission_maker_id = game.get("playersList")[game.get("missionMaker")]
-        mission_maker = players_ref.document(mission_maker_id).get().to_dict()
-        if uid != mission_maker.get("uid"):
+        if uid != game.get("playersList")[game.get("missionMaker")]:
             return "Not the mission maker cannot do that!"
 
         num_mission = pplOnMission(turn, game.get("numPlayers"))
@@ -62,7 +60,8 @@ def proposeMission():
         
         game_ref.update({
             u'mission': data.get('mission'), # we can only query the actual google id - possible vulnerability
-            u'turn': turn + 0.1
+            u'turn': turn + 0.1,
+
         })
 
         return "Success! Added ppl to mission!"
@@ -70,7 +69,6 @@ def proposeMission():
     except GameIDError as e:
         return e.message
 
-# TODO: figure some more shit out dude
 @turns.route("/voteMission", methods = ['POST'])
 def vote():
 
@@ -180,18 +178,21 @@ def choosePassOrFail():
             return "You are not deciding this mission!"
 
         vote = data.get("vote") # we will pass in a vote boolean
+        fail = game.get("failMission") # the boolean that determines whether people have failed the mission
 
-        if vote:
-            # if the mission doesn't fail
-            pass
-        else:
-            # if the mission fails
-            pass
+
+        if not vote:
+            game_ref.update({
+                u'fail': fail
+            })
         
         del mission[voterIndex]
 
         if len(mission) == 0:
             # what we do when everyone has voted
+            success = game.get("success") # the number of successful missions
+
+        else:
             pass
 
         game.update({

@@ -11,11 +11,6 @@ default_app = firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
-# given a game id, checking for a certain player's docId, and given userId,
-# make sure that the player's docId.uid is the same as given userId
-def checkPlayersUid(gameId, docId, userId):
-    pass
-
 def getGameRef(gameId):
     game_ref = db.collection(u'games').document(gameId)
     return game_ref
@@ -51,15 +46,16 @@ def doesGameExist(game_id):
 def doesUserExistInGame(players_ref, uid):
 
     # now we query for a specific player with our uid
-    players = players_ref.where(u"uid", u"==", uid).limit(1)
-    player_lst = [p for p in players.stream()]
+    player_lst = getUser(players_ref, uid)
 
     if len(player_lst) == 0:
-        return players_ref.document()
-    # TODO: uncomment and delete --- this is for testing purposes rn
-    # return players_ref.document()
+        return False
+    return player_lst[0]
 
-    return player_lst
+# only use getUser if we know 
+def getUser(players_ref, uid):
+    players = players_ref.where(u"uid", u"==", uid).limit(1)
+    return [p for p in players.stream()]
 
 # queries the owner of the game
 def getOwner(players_ref):
