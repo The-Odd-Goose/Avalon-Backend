@@ -17,10 +17,12 @@ newGame = {
     u"fail": 0,
     u"rejected": 0,
     u"success": 0,
-    u"turn": 0, # the turn of the game
-    u"missionMaker": None, # the mission maker
-    u"votedFor": 0, # number of players voting for mission
-    u"mission": [] # players on the mission
+    u"turn": 0, # the turn of the game -- only vote if .5
+    u"missionMaker": 0, # the mission maker
+    u"voteFor": 0, # number of players voting for mission to run
+    u"missionFor": 0, # number of players voting for the mission to succeed
+    u"mission": [], # players on the mission
+    u'vote': [], # this will have the different players who have not voted yet for the next mission
 }
 
 # how we get the game's id
@@ -37,7 +39,7 @@ def init_player(player_ref, username, user):
         u'bad': False,
         u'percival': False,
         u'morgana': False,
-        u'owner': False
+        u'owner': False,
     })
 
 # creating a game endpoint
@@ -107,7 +109,7 @@ def startGame():
         data = request.json
 
         # TODO: more authentication stuff, like when game has started, cannot do it again
-        try: 
+        try:
             game_ref = game_Exist(data)
             user = is_User(data)
             players_ref = game_ref.collection(u'players')
@@ -127,15 +129,20 @@ def startGame():
 
             # now we'll copy over the players from the stream
             lst_players = [p for p in players]
+            players_id_lst = [p.id for p in lst_players] # gets a list of all the player's access id
             numPlayers = len(lst_players)
 
             if numPlayers < 5:
                 abort(400, "Not enough players!")
 
+            # we need to update the players in the game
+            game_ref.update({
+                u"vote": lst_players,
+                u"playersList": players_id_lst
+            })
+
             def selectRandomPlayer(lst_players: List):
                 return random.randint(0, len(lst_players) - 1)
-
-            missionMaker = lst_players[0].id # our mission maker is arbitrarily the first one
 
             # and now we'll assign their roles
             merlinIndex = selectRandomPlayer(lst_players)
@@ -176,9 +183,7 @@ def startGame():
                     u'bad': True
                 })
 
-            # now we'll update the mission maker
             game_ref.update({
-                u'missionMaker': missionMaker,
                 u'turn': 1,
                 u'numPlayers': numPlayers
             })

@@ -61,3 +61,12 @@ def does_user_exist_in_game(players_ref, uid):
 def is_owner_of_game(players_ref, uid):
     owner_ref = getOwner(players_ref)
     return owner_ref.to_dict().get("uid") == uid
+
+def get_user(players_ref, uid):
+    players = players_ref.where(u"uid", u"==", uid).limit(1)
+    player_lst = [p for p in players.stream()]
+
+    if len(player_lst) == 0:
+        raise UIDError("user does not exist!")
+
+    return player_lst[0].get().to_dict()

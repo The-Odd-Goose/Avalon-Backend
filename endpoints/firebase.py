@@ -52,7 +52,6 @@ def doesUserExistInGame(players_ref, uid):
 
     # now we query for a specific player with our uid
     players = players_ref.where(u"uid", u"==", uid).limit(1)
-
     player_lst = [p for p in players.stream()]
 
     if len(player_lst) == 0:
