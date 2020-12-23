@@ -14,16 +14,23 @@ start = Blueprint('start', __name__)
 
 # the start of a new game
 newGame = {
+    u"turn": 0, # the turn of the game -- x0 is proposal, x1 is voting, x5 is choice, 60 is finished
+    u'numPlayers': 1,
+}
+
+freshGame = {
     u"failMission": 0, # for voting on the mission, num of  
     u"successMission": 0, # number of players voting for the mission to succeed
     u"rejected": 0, # number of rejected missions
     u"success": 0, # number of successful missions
-    u"turn": 0, # the turn of the game -- x.0 is proposal, x.1 is voting, x.5 is choice
+    u"fail": 0, # number of failed missions
     u"missionMaker": 0, # the mission maker -- index based on all player's user id
-    u"voteFor": 0, # number of players voting for mission to run
+    u"voteFor": [], # the players' uid voting for mission to run
+    u"voteAgainst": [], # the players' uid voting against the mission to run
     u"mission": [], # ! players on the mission -- user ids
     u'vote': [], # this will have the different players who have not voted yet for the next mission -- user ids
-    u'numPlayers': 1
+    u"turn": 10,
+    u'winner': None
 }
 
 # how we get the game's id
@@ -48,6 +55,7 @@ def init_player(player_ref, username, user):
 @start.route("/game", methods=['POST', 'DELETE'])
 def createGame():
 
+    # TODO: add a timestamp for when the game was created
     if request.method ==  'POST':
         try: 
 
@@ -232,12 +240,15 @@ def cleanSlate(data, turnCheck):
         if numPlayers < 5 or numPlayers > 8:
             abort(400, "Not the right number of players -- between 5 and 8!")
 
-        # we need to update the players in the game
-        game_ref.update({
+        restart = {
             u"vote": players_id_lst,
             u"playersList": players_id_lst,
-            u"turn": 1
-        })
+            u"winner": None,
+        }
+        update = {**freshGame, **restart}
+
+        # we need to update the players in the game
+        game_ref.update(update)
 
         def selectRandomPlayer(lst_players: List):
             return random.randint(0, len(lst_players) - 1)

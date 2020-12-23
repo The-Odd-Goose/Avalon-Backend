@@ -72,4 +72,4 @@ def get_user(players_ref, uid):
     if len(player_lst) == 0:
         raise UIDError("user does not exist!")
 
-    return player_lst[0].get().to_dict()
+    return player_lst[0].to_dict()
