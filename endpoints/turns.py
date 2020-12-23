@@ -253,7 +253,8 @@ def choosePassOrFail():
 
                     if num_mission_fails >= 3:
                         update.update({
-                            u"winner": "The bad guys won!"
+                            u"winner": "The bad guys won!",
+                            u"turn": 60
                         })
 
                     update.update({
@@ -267,7 +268,8 @@ def choosePassOrFail():
 
                     if num_mission_successes >= 3:
                         update.update({
-                            u"winner": "The good guys won!"
+                            u"winner": "The good guys won!",
+                            u"turn": 60
                         })
                     
                     update.update({

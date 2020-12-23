@@ -23,7 +23,7 @@ freshGame = {
     u"successMission": 0, # number of players voting for the mission to succeed
     u"rejected": 0, # number of rejected missions
     u"success": 0, # number of successful missions
-    u"fail": 0, # number of failed missions
+    u"fail": 0, # number of failed missions -- not required, but easier for frontend
     u"missionMaker": 0, # the mission maker -- index based on all player's user id
     u"voteFor": [], # the players' uid voting for mission to run
     u"voteAgainst": [], # the players' uid voting against the mission to run
