@@ -125,7 +125,7 @@ def addToGame():
 
             # if num_players < 8, then increment it
             game_ref.update({
-                num_players: num_players + 1
+                u"numPlayers": (num_players + 1)
             })
 
             # so now we grab the game reference, and we add our player to the collection of players
@@ -185,92 +185,123 @@ def addToGame():
         except GameIDError as e:
             abort(400, f"Failure occured due to game id... {e.message}")
 
+# ! the following two endpoints should work... !
 @start.route("/startGame", methods=['POST'])
 def startGame():
 
     if request.method == 'POST':
         data = request.json
+        def turnCheck(turn):
+            return turn != 0
 
-        # TODO: more authentication stuff, like when game has started, cannot do it again
-        try:
-            game_ref = game_Exist(data)
-            user = is_User(data)
-            players_ref = game_ref.collection(u'players')
+        return cleanSlate(data, turnCheck)
 
-            # if they are not the owner of the game, return false
-            if not is_owner_of_game(players_ref, user.uid):
-                abort(403, "Not owner of game --- cannot start it!")
+@start.route("/restartGame", methods=['POST'])
+def restartGame():
+    if request.method == 'POST':
+        data = request.json
+        def turnCheck(turn):
+            return False
+        return cleanSlate(data, turnCheck)
 
-            game = game_ref.get().to_dict()
-            turn = game.get("turn")
+# sets a clean slate to the game
+def cleanSlate(data, turnCheck):
+    try:
+        game_ref = game_Exist(data)
+        user = is_User(data)
+        players_ref = game_ref.collection(u'players')
 
-            if turn != 0:
-                abort(403, "Game has already started, cannot start again!")
+        # if they are not the owner of the game, return false
+        if not is_owner_of_game(players_ref, user.uid):
+            abort(403, "Not owner of game --- cannot start it!")
 
-            # input stream of all players
-            players = players_ref.stream()
+        game = game_ref.get().to_dict()
+        turn = game.get("turn")
 
-            # now we'll copy over the players from the stream
-            lst_players = [p for p in players]
-            players_id_lst = [p.to_dict().get("uid") for p in lst_players] # gets a list of all the player's access id
-            numPlayers = game.get("numPlayers")
+        if turnCheck(turn):
+            abort(403, "Game has already started, cannot start again!")
 
-            if numPlayers < 5 or numPlayers > 8:
-                abort(400, "Not the right number of players -- between 5 and 8!")
+        # input stream of all players
+        players = players_ref.stream()
 
-            # we need to update the players in the game
-            game_ref.update({
-                u"vote": lst_players,
-                u"playersList": players_id_lst
+        # now we'll copy over the players from the stream
+        lst_players = [p for p in players]
+        players_id_lst = [p.to_dict().get("uid") for p in lst_players] # gets a list of all the player's access id
+        numPlayers = game.get("numPlayers")
+
+        if numPlayers < 5 or numPlayers > 8:
+            abort(400, "Not the right number of players -- between 5 and 8!")
+
+        # we need to update the players in the game
+        game_ref.update({
+            u"vote": players_id_lst,
+            u"playersList": players_id_lst,
+            u"turn": 1
+        })
+
+        def selectRandomPlayer(lst_players: List):
+            return random.randint(0, len(lst_players) - 1)
+
+        # and now we'll assign their roles
+        merlinIndex = selectRandomPlayer(lst_players)
+        merlin = lst_players[merlinIndex] # grab merlin first
+        players_ref.document(merlin.id).update({ # set merlin's role to true
+            u'merlin': True,
+            u"bad": False,
+            u"morgana": False,
+            u"mordred": False,
+            u"percival": False
+        })
+        del lst_players[merlinIndex]
+
+        percivalIndex = selectRandomPlayer(lst_players)
+        percival = lst_players[percivalIndex] # grab percival's player_ref
+        players_ref.document(percival.id).update({ # set percival's role to true
+            u'percival': True,
+            u"bad": False,
+            u"morgana": False,
+            u"mordred": False,
+            u"merlin": False
+        })
+        del lst_players[percivalIndex]
+
+        morganaIndex = selectRandomPlayer(lst_players)
+        morgana = lst_players[morganaIndex] # grab morgana's player_ref
+        players_ref.document(morgana.id).update({ # set morgana's role to true
+            u'morgana': True,
+            u'bad': True,
+            u"percival": False,
+            u"merlin": False,
+            u"mordred": False,
+        })
+        del lst_players[morganaIndex]
+
+        mordredIndex = selectRandomPlayer(lst_players)
+        mordred = lst_players[mordredIndex] # grab mordred's player_ref
+        players_ref.document(mordred.id).update({ # set mordred's role to true
+            u'mordred': True,
+            u'bad': True,
+            u"percival": False,
+            u"merlin": False,
+            u'morgana': False,
+        })
+        del lst_players[mordredIndex]
+
+        # now if the number of players >= 7, add a third bad guy
+        if numPlayers >= 7:
+            badIndex = selectRandomPlayer(lst_players)
+            bad = lst_players[badIndex]
+            players_ref.document(bad.id).update({ # set bad's role to true
+                u'bad': True,
+                u"percival": False,
+                u"merlin": False,
+                u"morgana": False,
+                u"mordred": False,
             })
 
-            def selectRandomPlayer(lst_players: List):
-                return random.randint(0, len(lst_players) - 1)
+        return "Success!"
 
-            # and now we'll assign their roles
-            merlinIndex = selectRandomPlayer(lst_players)
-            merlin = lst_players[merlinIndex] # grab merlin first
-            players_ref.document(merlin.id).update({ # set merlin's role to true
-                u'merlin': True
-            })
-            del lst_players[merlinIndex]
-
-            percivalIndex = selectRandomPlayer(lst_players)
-            percival = lst_players[percivalIndex] # grab percival's player_ref
-            players_ref.document(percival.id).update({ # set percival's role to true
-                u'percival': True
-            })
-            del lst_players[percivalIndex]
-
-            morganaIndex = selectRandomPlayer(lst_players)
-            morgana = lst_players[morganaIndex] # grab morgana's player_ref
-            players_ref.document(morgana.id).update({ # set morgana's role to true
-                u'morgana': True,
-                u'bad': True
-            })
-            del lst_players[morganaIndex]
-
-            mordredIndex = selectRandomPlayer(lst_players)
-            mordred = lst_players[mordredIndex] # grab mordred's player_ref
-            players_ref.document(mordred.id).update({ # set mordred's role to true
-                u'mordred': True,
-                u'bad': True
-            })
-            del lst_players[mordredIndex]
-
-            # now if the number of players >= 7, add a third bad guy
-            if numPlayers >= 7:
-                badIndex = selectRandomPlayer(lst_players)
-                bad = lst_players[badIndex]
-                players_ref.document(bad.id).update({ # set bad's role to true
-                    u'bad': True
-                })
-
-            game_ref.update({
-                u'turn': 1,
-            })
-
-            return "Success!"
-
-        except UIDError as e:
-            abort(400, e.message)
+    except GameIDError as e:
+        abort(400, e.message)
+    except UIDError as e:
+        abort(400, e.message)
