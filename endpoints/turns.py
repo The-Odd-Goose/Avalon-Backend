@@ -1,5 +1,5 @@
 from endpoints.type import GameIDError, game_Exist, get_user
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 from endpoints.firebase import db, doesGameExist, doesUserExistInGame, getGameDict, getGameRef
 
 turns = Blueprint('turns', __name__)
@@ -16,6 +16,14 @@ def pplOnMission(turn: int, ppl: int) -> int:
 
     return missions[ppl - 5][turn - 1]
 
+# checks if the given uids are in the players list
+def isUIDListInGame(uids, playersLst):
+    players = {p: True for p in playersLst} # creates a dictionary of all the players, to query in O(1)
+
+    for uid in uids:
+        if players.get(uid) == None:
+            abort(400, "Not all given uids is part of game!")
+
 # endpoint to propose missions
 @turns.route("/proposeMission", methods=['POST'])
 def proposeMission():
@@ -31,22 +39,22 @@ def proposeMission():
 
     data = request.json
     try: 
-        game_ref = doesGameExist(data)
-        game = game_ref.get().to_dict()
+        game_ref = game_Exist(data)
+        game = getGameDict(game_ref)
 
         turn = game.get("turn")
         if turn < 1 or turn > 5 or turn % 1 != 0:
-            return "error... something went wrong with the turn"
+            abort(400, "error... something went wrong with the turn")
 
-        uid = data.get("uid")
+        uid = data.get("userId")
         if uid is None or uid == "":
-            return "error... uid not found... login"
+            abort(400, "error... uid not found... login")
 
-        players_ref = game_ref.collection(u'players')
+        lstPlayers = game.get("playersList")
 
         # have to check whether it is the right player
-        if uid != game.get("playersList")[game.get("missionMaker")]:
-            return "Not the mission maker cannot do that!"
+        if uid != lstPlayers[game.get("missionMaker")]:
+            abort(403, "Not the mission maker cannot do that!")
 
         num_mission = pplOnMission(turn, game.get("numPlayers"))
 
@@ -57,11 +65,14 @@ def proposeMission():
 
         if len(mission) != num_mission:
             return "Not the right number of people for the mission"
+
+        mission = data.get("mission")
+        # first check if everyone is in the game
+        isUIDListInGame(mission, lstPlayers)
         
         game_ref.update({
-            u'mission': data.get('mission'), # we can only query the actual google id - possible vulnerability
+            u'mission': mission, # we can only query the actual google id - possible vulnerability
             u'turn': turn + 0.1,
-
         })
 
         return "Success! Added ppl to mission!"
