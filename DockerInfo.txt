@@ -1,0 +1,18 @@
+To run the container, we first need to build an image
+
+If unfamiliar with docker, watch this first:
+https://www.youtube.com/watch?v=gAkwW2tuIqE
+
+In order for this to work however, we need to have some things happen
+First you need to set up your own firebase project and download the service-account key json into
+a file called service-account.json
+
+One of two ways can be done in order to build the image and execute this:
+1. VS Code Docker Extension can help do this easily
+Execute the following two commands
+    - Docker Images: Build Image
+    - Docker Images: Run
+
+2. Execute the following two in the terminal
+    - docker build -t <image-name>
+    - docker run <image-tag>
