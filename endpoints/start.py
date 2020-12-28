@@ -52,7 +52,7 @@ def init_player(player_ref, username, user):
 
 @start.route("/error", methods=['POST'])
 def errorRoute():
-    abort(400, "Error Occured")
+    return {"message": "Hello"}
 
 # creating a game endpoint
 # ! Deleting and creating works !
@@ -96,7 +96,7 @@ def createGame():
 
             if user and user.to_dict().get("owner"):
                 game_ref.delete()
-                return "Delete"
+                return {"message": "Delete"}
 
             # if not the owner, abort
             abort(403, "Not the owner, cannot delete this game")
@@ -141,7 +141,7 @@ def addToGame():
 
             # so now we grab the game reference, and we add our player to the collection of players
             init_player(new_player_ref, data.get("username"), user)
-            return "Success!"
+            return {"message": "Success!"}
 
         # what happens with different types of errors
         except UIDError as e:
@@ -162,7 +162,7 @@ def addToGame():
             num_players = game.get("numPlayers") - 1
             if num_players == 0:
                 game_ref.delete()
-                return "Game deleted"
+                return {"message": "Game deleted"}
 
             player_ref = game_ref.collection(u"players")
             user = doesUserExistInGame(players_ref=player_ref, uid=user.uid)
@@ -186,7 +186,7 @@ def addToGame():
                     u"numPlayers": num_players
                 })
 
-                return "Deleted"
+                return {"message": "Deleted"}
             
             abort(400, "User does not exist in game")
 
@@ -312,7 +312,7 @@ def cleanSlate(data, turnCheck):
                 u"mordred": False,
             })
 
-        return "Success!"
+        return {"message": "Success!"}
 
     except GameIDError as e:
         abort(400, e.message)
