@@ -114,7 +114,6 @@ def vote():
     #   voteFor: boolean, voting for the proposed mission or not 
     # }
     try:
-        # TODO: check and make sure that the user's id is part of mission
         data = request.json
 
         uid = data.get("uid")

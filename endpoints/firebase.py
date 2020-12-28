@@ -4,10 +4,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.auth import UserNotFoundError
 
-cred = credentials.Certificate("./service-account.json") # based on app, not here
-default_app = firebase_admin.initialize_app(cred)
+# cred = credentials.Certificate("./service-account.json") # based on app, not here
+# default_app = firebase_admin.initialize_app(cred)
 # TODO: switch to this for deployment
-# default_app = firebase_admin.initialize_app()
+default_app = firebase_admin.initialize_app()
 
 db = firestore.client()
 
@@ -41,7 +41,6 @@ def doesGameExist(game_id):
     # otherwise, return a string defining its error
     return "Error: game does not exist"
 
-# TODO: redo this with players_ref as the parameter --- save up on reads
 # returns either the list with the player inside it, or a new reference to a new player
 def doesUserExistInGame(players_ref, uid):
 

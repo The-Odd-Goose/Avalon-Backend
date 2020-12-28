@@ -105,7 +105,6 @@ def createGame():
 @start.route("/gameMember", methods=['POST', 'DELETE'])
 def addToGame():
 
-    # TODO: cap number of players
     if request.method == 'POST':
         # data needs to be of type:
         # {
@@ -170,7 +169,6 @@ def addToGame():
                 # if the user exists in the game, query its document id
                 # then using this, we delete it from players_ref
                 player_ref.document(user.id).delete()
-                # TODO: transfer ownership + if last member, remove game
                 user_dict = user.to_dict()
 
                 if user_dict.get("owner"):
