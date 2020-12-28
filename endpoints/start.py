@@ -50,6 +50,10 @@ def init_player(player_ref, username, user):
         u'owner': False,
     })
 
+@start.route("/error", methods=['POST'])
+def errorRoute():
+    abort(400, "Error Occured")
+
 # creating a game endpoint
 # ! Deleting and creating works !
 @start.route("/game", methods=['POST', 'DELETE'])
