@@ -2,7 +2,7 @@
 service-account.json
 
 # some architecture notes + other stuff:
-Firestore_Info.txt
+# Firestore_Info.txt
 /node_modules
 /.vscode
 
