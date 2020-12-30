@@ -62,10 +62,10 @@ def proposeMission():
         mission = data.get('mission')
 
         if not type(mission) == list:
-            return {"message": "Not proper format!"}
+            abort(400, {"message": "Not proper format!"})
 
         if len(mission) != num_mission:
-            return {"message": "Not the right number of people for the mission"}
+            abort(400, {"message": "Not the right number of people for the mission"})
 
         mission = data.get("mission")
         # first check if everyone is in the game
