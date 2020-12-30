@@ -62,10 +62,10 @@ def proposeMission():
         mission = data.get('mission')
 
         if not type(mission) == list:
-            return "Not proper format!"
+            abort(400, {"message": "Not proper format!"})
 
         if len(mission) != num_mission:
-            return "Not the right number of people for the mission"
+            abort(400, {"message": "Not the right number of people for the mission"})
 
         mission = data.get("mission")
         # first check if everyone is in the game
@@ -81,10 +81,10 @@ def proposeMission():
             u"failMission": 0
         })
 
-        return "Success! Added ppl to mission!"
+        return {"message": "Success! Added ppl to mission!"}
 
     except GameIDError as e:
-        return e.message
+        abort(400, e.message)
 
 # the following function checks if uid is in list, and if it is, removes it
 # only removes a single instance of the uid
@@ -114,7 +114,6 @@ def vote():
     #   voteFor: boolean, voting for the proposed mission or not 
     # }
     try:
-        # TODO: check and make sure that the user's id is part of mission
         data = request.json
 
         uid = data.get("uid")
@@ -169,18 +168,18 @@ def vote():
                     u'turn': (turn + 4) # simply move onto next turn
                 })
                 game_ref.update(update)
-                return "Mission passed, moving on"
+                return {"message": "Mission passed, moving on"}
             else:
                 update.update(failTurn(game))
                 game_ref.update(update)
-                return "Mission rejected"
+                return {"message": "Mission rejected"}
 
         # update the number of votes for, and the ones left to vote
         game_ref.update(update)
-        return "Success, you have voted"
+        return {"message": "Success, you have voted"}
 
     except GameIDError as e:
-        return e.message
+        abort(400, e.message)
 
 # what we do if the mission is rejected
 def failTurn(game):
@@ -212,7 +211,7 @@ def choosePassOrFail():
             turn = game.get("turn")
 
             if turn % 10 != 5:
-                return "Mission did not pass, cannot do this!"
+                return {"message": "Mission did not pass, cannot do this!"}
 
             # gets the uid and checks the turn
             uid = data.get("uid")
@@ -262,7 +261,7 @@ def choosePassOrFail():
                     })
 
                     game_ref.update(update)
-                    return "Mission failed!"
+                    return {"message": "Mission failed!"}
                 else:
                     num_mission_successes = game.get("success") + 1
 
@@ -277,7 +276,7 @@ def choosePassOrFail():
                     })
 
                     game_ref.update(update)
-                    return "Mission successful!"
+                    return {"message": "Mission successful!"}
 
             # updates the mission
             update.update({
@@ -286,7 +285,7 @@ def choosePassOrFail():
 
             game_ref.update(update)
 
-            return "One person more has voted!"
+            return {"message": "One person more has voted!"}
 
         except GameIDError as e:
-            return e.message
+            abort(400, e.message)

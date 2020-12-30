@@ -92,7 +92,7 @@ def createGame():
 
             if user and user.to_dict().get("owner"):
                 game_ref.delete()
-                return "Delete"
+                return {"message": "Delete"}
 
             # if not the owner, abort
             abort(403, "Not the owner, cannot delete this game")
@@ -105,7 +105,6 @@ def createGame():
 @start.route("/gameMember", methods=['POST', 'DELETE'])
 def addToGame():
 
-    # TODO: cap number of players
     if request.method == 'POST':
         # data needs to be of type:
         # {
@@ -138,7 +137,7 @@ def addToGame():
 
             # so now we grab the game reference, and we add our player to the collection of players
             init_player(new_player_ref, data.get("username"), user)
-            return "Success!"
+            return {"message": "Success!"}
 
         # what happens with different types of errors
         except UIDError as e:
@@ -159,7 +158,7 @@ def addToGame():
             num_players = game.get("numPlayers") - 1
             if num_players == 0:
                 game_ref.delete()
-                return "Game deleted"
+                return {"message": "Game deleted"}
 
             player_ref = game_ref.collection(u"players")
             user = doesUserExistInGame(players_ref=player_ref, uid=user.uid)
@@ -170,7 +169,6 @@ def addToGame():
                 # if the user exists in the game, query its document id
                 # then using this, we delete it from players_ref
                 player_ref.document(user.id).delete()
-                # TODO: transfer ownership + if last member, remove game
                 user_dict = user.to_dict()
 
                 if user_dict.get("owner"):
@@ -184,7 +182,7 @@ def addToGame():
                     u"numPlayers": num_players
                 })
 
-                return "Deleted"
+                return {"message": "Deleted"}
             
             abort(400, "User does not exist in game")
 
@@ -310,7 +308,7 @@ def cleanSlate(data, turnCheck):
                 u"mordred": False,
             })
 
-        return "Success!"
+        return {"message": "Success!"}
 
     except GameIDError as e:
         abort(400, e.message)
