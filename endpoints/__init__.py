@@ -8,7 +8,7 @@ def create_app(config_class=Config):
     app = Flask(__name__)
 
     # cors setup
-    cors = CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+    cors = CORS(app, resources={r"/*": {"origins": ["https://the-odd-goose.web.app", "https://the-odd-goose.firebaseapp.com"]}})
 
     # more configuration within 
     app.config.from_object(Config)
