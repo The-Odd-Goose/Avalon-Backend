@@ -4,10 +4,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.auth import UserNotFoundError
 
-# cred = credentials.Certificate("./service-account.json") # based on app, not here
-# default_app = firebase_admin.initialize_app(cred)
+cred = credentials.Certificate("./service-account.json") # based on app, not here
+default_app = firebase_admin.initialize_app(cred)
 # TODO: switch to this for deployment
-default_app = firebase_admin.initialize_app()
+# default_app = firebase_admin.initialize_app()
 
 db = firestore.client()
 
@@ -61,3 +61,8 @@ def getOwner(players_ref):
     owner = players_ref.where(u"owner", u"==", True)
     owner_ref = [p for p in owner.stream()][0]
     return owner_ref
+
+def getMerlinAndMorgana(players_ref, role):
+    player = players_ref.where(role, u"==", True).limit(1)
+    player_ref = [p for p in player.stream()][0]
+    return player_ref

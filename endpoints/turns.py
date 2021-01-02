@@ -1,6 +1,6 @@
 from endpoints.type import GameIDError, game_Exist, get_user
-from flask import Blueprint, request, jsonify, abort
-from endpoints.firebase import db, doesGameExist, doesUserExistInGame, getGameDict, getGameRef
+from flask import Blueprint, request, jsonify
+from endpoints.firebase import db, doesGameExist, doesUserExistInGame, getGameDict, getGameRef, getMerlinAndMorgana
 
 # TODO: add in the guessing of merlin
 turns = Blueprint('turns', __name__)
@@ -23,7 +23,7 @@ def isUIDListInGame(uids, playersLst):
 
     for uid in uids:
         if players.get(uid) == None:
-            abort(400, "Not all given uids is part of game!")
+            return "Not all given uids is part of game!", 400
 
 # endpoint to propose missions
 @turns.route("/proposeMission", methods=['POST'])
@@ -45,27 +45,27 @@ def proposeMission():
 
         turn = game.get("turn")
         if turn < 10 or turn > 50 or turn % 10 != 0:
-            abort(400, "error... something went wrong with the turn")
+            return "error... something went wrong with the turn", 400
 
         uid = data.get("uid")
         if uid is None or uid == "":
-            abort(400, "error... uid not found... login")
+            return "error... uid not found... login", 400
 
         lstPlayers = game.get("playersList")
 
         # have to check whether it is the right player
         if uid != lstPlayers[game.get("missionMaker")]:
-            abort(403, "Not the mission maker cannot do that!")
+            return "Not the mission maker cannot do that!", 403
 
         num_mission = pplOnMission(turn, game.get("numPlayers"))
 
         mission = data.get('mission')
 
         if not type(mission) == list:
-            abort(400, {"message": "Not proper format!"})
+            return "Not proper format!", 400
 
         if len(mission) != num_mission:
-            abort(400, {"message": "Not the right number of people for the mission"})
+            return "Not the right number of people for the mission", 400
 
         mission = data.get("mission")
         # first check if everyone is in the game
@@ -84,7 +84,7 @@ def proposeMission():
         return {"message": "Success! Added ppl to mission!"}
 
     except GameIDError as e:
-        abort(400, e.message)
+        return e.message, 400
 
 # the following function checks if uid is in list, and if it is, removes it
 # only removes a single instance of the uid
@@ -98,7 +98,7 @@ def removeUID(uid, uidList):
             uidIndex = i
 
     if uidIndex == None:
-        abort(403, "Your uid was not in the provided list!")
+        return "Your uid was not in the provided list!", 403
 
     del uidList[uidIndex]
 
@@ -127,7 +127,7 @@ def vote():
         # gets the turn of the game
         turn = game.get("turn")
         if turn % 10 != 1:
-            abort(400, "Not time to vote for mission yet!")
+            return "Not time to vote for mission yet!", 400
 
         # checks if uid is able to vote
         votes = game.get("vote")
@@ -179,7 +179,7 @@ def vote():
         return {"message": "Success, you have voted"}
 
     except GameIDError as e:
-        abort(400, e.message)
+        return e.message, 400
 
 # what we do if the mission is rejected
 def failTurn(game):
@@ -267,8 +267,7 @@ def choosePassOrFail():
 
                     if num_mission_successes >= 3:
                         update.update({
-                            u"winner": "The good guys won!",
-                            u"turn": 60
+                            u"turn": 59
                         })
                     
                     update.update({
@@ -288,4 +287,53 @@ def choosePassOrFail():
             return {"message": "One person more has voted!"}
 
         except GameIDError as e:
-            abort(400, e.message)
+            return e.message, 400
+
+@turns.route("/guessMerlin", methods = ["POST"])
+def guessMerlin():
+
+    if request.method == 'POST':
+        try:
+            data = request.json
+            game_ref = game_Exist(data)
+            game = getGameDict(game_ref)
+
+            turn = game.get("turn")
+
+            if turn != 59:
+                return "This is not the time to guess goose wizard!", 400
+
+            uid = data.get("uid")
+            merlin_uid = data.get(u"merlinUid")
+
+            if not uid or not merlin_uid:
+                return "Provided json was not right!", 400
+            
+            players_ref = game_ref.collection(u"players")
+
+            morgana = getMerlinAndMorgana(players_ref, u"morgana").to_dict()
+
+            if morgana.get("uid") != uid:
+                return "Only the duck witch can guess the goose wizard!", 403
+
+            merlin = getMerlinAndMorgana(players_ref, u"merlin").to_dict()
+
+            message = ""
+
+            if merlin_uid != merlin.get("uid"):
+                message = "The good guys won!"
+                game_ref.update({
+                    u"winner": message,
+                    u"turn": 60
+                })
+            else:
+                message = "The bad guys won!"
+                game_ref.update({
+                    u"winner": message,
+                    u"turn": 60
+                })
+
+            return jsonify({u"message": message})
+            
+        except GameIDError as e:
+            return e.message, 400
