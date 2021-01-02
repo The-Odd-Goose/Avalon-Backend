@@ -4,10 +4,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.auth import UserNotFoundError
 
-cred = credentials.Certificate("./service-account.json") # based on app, not here
-default_app = firebase_admin.initialize_app(cred)
+# cred = credentials.Certificate("./service-account.json") # based on app, not here
+# default_app = firebase_admin.initialize_app(cred)
 # TODO: switch to this for deployment
-# default_app = firebase_admin.initialize_app()
+default_app = firebase_admin.initialize_app()
 
 db = firestore.client()
 

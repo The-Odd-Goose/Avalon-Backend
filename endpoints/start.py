@@ -14,7 +14,7 @@ start = Blueprint('start', __name__)
 
 # the start of a new game
 newGame = {
-    u"turn": 0, # the turn of the game -- x0 is proposal, x1 is voting, x5 is choice, 60 is finished
+    u"turn": 0, # the turn of the game -- x0 is proposal, x1 is voting, x5 is choice, 59 is guess merlin, 60 is finished
     u'numPlayers': 1,
 }
 
