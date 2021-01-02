@@ -24,7 +24,7 @@ def create_app(config_class=Config):
 
     @app.before_request
     def referrerCheck():
-        if request.referrer != "https://the-odd-goose.web.app/" or request.referrer != "https://the-odd-goose.firebaseapp.com/":
+        if request.referrer != "https://the-odd-goose.web.app/" and request.referrer != "https://the-odd-goose.firebaseapp.com/":
             return "Unauthorized access", 403
 
         return None
