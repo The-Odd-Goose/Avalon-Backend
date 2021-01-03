@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, abort
+from flask import Blueprint, request, jsonify
 
 # other required stuff
 from typing import List
@@ -14,7 +14,7 @@ start = Blueprint('start', __name__)
 
 # the start of a new game
 newGame = {
-    u"turn": 0, # the turn of the game -- x0 is proposal, x1 is voting, x5 is choice, 60 is finished
+    u"turn": 0, # the turn of the game -- x0 is proposal, x1 is voting, x5 is choice, 59 is guess merlin, 60 is finished
     u'numPlayers': 1,
 }
 
@@ -79,9 +79,9 @@ def createGame():
             })
 
         except UIDError as e:
-            abort(403, e.message)
+            return e.message, 403
         except ValueError as e:
-            abort(400, "UID request was incorrect")
+            return "UID request was incorrect", 400
     elif request.method == 'DELETE':
         try:
             data = request.json
@@ -95,11 +95,11 @@ def createGame():
                 return {"message": "Delete"}
 
             # if not the owner, abort
-            abort(403, "Not the owner, cannot delete this game")
+            return "Not the owner, cannot delete this game", 403
         except UIDError as e:
-            abort(403, e.message)
+            return e.message, 403
         except ValueError as e:
-            abort(400, "UID request was incorrect")
+            return "UID request was incorrect", 400
 
 # ! Adding a player works + removing a player works !
 @start.route("/gameMember", methods=['POST', 'DELETE'])
@@ -122,10 +122,10 @@ def addToGame():
             num_players = game.get("numPlayers")
 
             if turn != 0:
-                abort(400, "Game has already started, cannot add players")
+                return "Game has already started, cannot add players", 400
             
             if num_players >= 8:
-                abort(400, "Max at 8 players!")
+                return "Max at 8 players!", 400
 
             player_ref = game_ref.collection(u"players")
             new_player_ref = does_user_exist_in_game(player_ref, user.uid)
@@ -141,9 +141,9 @@ def addToGame():
 
         # what happens with different types of errors
         except UIDError as e:
-            abort(403, f"Failure occured due to user... {e.message}")
+            return f"Failure occured due to user... {e.message}", 403
         except GameIDError as e:
-            abort(400, f"Failure occured due to game id... {e.message}")
+            return f"Failure occured due to game id... {e.message}", 400
     elif request.method == 'DELETE':
         data = request.json
 
@@ -153,7 +153,7 @@ def addToGame():
             game = getGameDict(game_ref)
 
             if game.get("turn") != 0:
-                abort(400, "Game has already started, cannot leave")
+                return "Game has already started, cannot leave", 400
 
             num_players = game.get("numPlayers") - 1
             if num_players == 0:
@@ -184,12 +184,12 @@ def addToGame():
 
                 return {"message": "Deleted"}
             
-            abort(400, "User does not exist in game")
+            return "User does not exist in game", 400
 
         except UIDError as e:
-            abort(403, f"Failure occured due to user... {e.message}")
+            return f"Failure occured due to user... {e.message}", 403
         except GameIDError as e:
-            abort(400, f"Failure occured due to game id... {e.message}")
+            return f"Failure occured due to game id... {e.message}", 400
 
 # ! the following two endpoints should work... !
 @start.route("/startGame", methods=['POST'])
@@ -219,13 +219,13 @@ def cleanSlate(data, turnCheck):
 
         # if they are not the owner of the game, return false
         if not is_owner_of_game(players_ref, user.uid):
-            abort(403, "Not owner of game --- cannot start it!")
+            return "Not owner of game --- cannot start it!", 403
 
         game = game_ref.get().to_dict()
         turn = game.get("turn")
 
         if turnCheck(turn):
-            abort(403, "Game has already started, cannot start again!")
+            return "Game has already started, cannot start again!", 403
 
         # input stream of all players
         players = players_ref.stream()
@@ -236,7 +236,7 @@ def cleanSlate(data, turnCheck):
         numPlayers = game.get("numPlayers")
 
         if numPlayers < 5 or numPlayers > 8:
-            abort(400, "Not the right number of players -- between 5 and 8!")
+            return "Not the right number of players -- between 5 and 8!", 400
 
         restart = {
             u"vote": players_id_lst,
@@ -311,6 +311,6 @@ def cleanSlate(data, turnCheck):
         return {"message": "Success!"}
 
     except GameIDError as e:
-        abort(400, e.message)
+        return e.message, 400
     except UIDError as e:
-        abort(400, e.message)
+        return e.message, 400

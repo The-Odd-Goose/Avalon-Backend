@@ -55,7 +55,7 @@ def does_user_exist_in_game(players_ref, uid):
     if not user_exist:
         return players_ref.document()
     # TODO: uncomment and delete --- this is for testing purposes rn
-    return players_ref.document()
+    # return players_ref.document()
 
     # if user does exist, raise an error
     raise UIDError("User is already in game!")

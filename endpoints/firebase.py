@@ -61,3 +61,8 @@ def getOwner(players_ref):
     owner = players_ref.where(u"owner", u"==", True)
     owner_ref = [p for p in owner.stream()][0]
     return owner_ref
+
+def getMerlinAndMorgana(players_ref, role):
+    player = players_ref.where(role, u"==", True).limit(1)
+    player_ref = [p for p in player.stream()][0]
+    return player_ref
